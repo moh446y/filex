@@ -1,6 +1,6 @@
 import sys
 import time 
-import httpx
+import requests
 import threading
 sys.excepthook = lambda *args: None
 owner = "01094204741"
@@ -48,7 +48,7 @@ def login(number, password):
     }
 
     try:
-        res = httpx.post(
+        res = requests.post(
             "https://mobile.vodafone.com.eg/auth/realms/vf-realm/protocol/openid-connect/token",
             headers=headers,
             data=data
@@ -128,7 +128,7 @@ def QuotaRedistribution(access_token, owner, member, quota):
 		  },
 		  "type": "QuotaRedistribution"
 	}
-	response = httpx.patch(url, headers=headers, json=data)
+	response = requests.patch(url, headers=headers, json=data)
 	if  'limit' in response.text:
 		w = response.headers['ratelimit-reset']
 		countdown(int(w), 'limit')
@@ -200,7 +200,7 @@ def SendInvitation(access_token, owner, member, quota):
 		    }
 		  }
 	}
-	response = httpx.post(url, headers=headers, json=data)
+	response = requests.post(url, headers=headers, json=data)
 	if 'limit' in response.text:
 		w = response.headers['ratelimit-reset']
 		countdown(int(w), 'limit')
@@ -244,7 +244,7 @@ def AcceptInvitation(access_token, owner, member):
 	        ]
 	    }
 	}
-	response = httpx.patch(url, headers=headers, json=payload)
+	response = requests.patch(url, headers=headers, json=payload)
 	if  'limit' in response.text:
 		w = response.headers['ratelimit-reset']
 		countdown(int(w), 'limit')
@@ -295,7 +295,7 @@ def CancelInvitation(access_token, owner, member):
     "type": "CancelInvitation"
 }
 
-	response = httpx.post(url, headers=headers, json=payload)
+	response = requests.post(url, headers=headers, json=payload)
 	if  'limit' in response.text:
 		w = response.headers['ratelimit-reset']
 		countdown(int(w), 'limit')
@@ -322,7 +322,7 @@ def total_felix(access_token, owner):
 	    "Accept-Language": "ar",
 	    "Host": "web.vodafone.com.eg"
 	}
-	response = httpx.get(url, headers=headers).json()
+	response = requests.get(url, headers=headers).json()
 	value = None
 	for item in response:
 	       if item.get("@type") == "OTHERS":
