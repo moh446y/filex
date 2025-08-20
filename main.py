@@ -3,10 +3,10 @@ import time
 import requests
 import threading
 sys.excepthook = lambda *args: None
-owner = "01094204741"
-password_owner = "Selem@1234##"
+owner = "01091900421"
+password_owner = "Ahmed@1#2"
 #=============================
-member1 = "01014767151"
+member1 = "01012066257"
 #=============================
 member2 = "01018116257"
 password_member2 = "Hamo123#"
