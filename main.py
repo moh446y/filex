@@ -4,15 +4,18 @@ import time
 import requests
 import threading
 sys.excepthook = lambda *args: None
+sys.excepthook = sys.__excepthook__  # عشان يظهرلك الأخطاء
+
 owner = os.getenv('owner')
 password_owner = os.getenv('password_owner')
-#=============================
+
 member1 = os.getenv('member1')
-#=============================
+
 member2 = os.getenv('member2')
 password_member2 = os.getenv('password_member2')
-#=============================
-count_loop = os.getenv('loop')
+
+# لازم يتحول int
+count_loop = int(os.getenv('loop', 1))
 #=============================
 def countdown(seconds, loop=""):
     for remaining in range(seconds, 0, -1):
