@@ -3,8 +3,9 @@ import sys
 import time 
 import requests
 import threading
+
 sys.excepthook = lambda *args: None
-sys.excepthook = sys.__excepthook__  # عشان يظهرلك الأخطاء
+sys.excepthook = sys.__excepthook__ 
 
 owner = os.getenv('owner')
 password_owner = os.getenv('password_owner')
@@ -14,7 +15,6 @@ member1 = os.getenv('member1')
 member2 = os.getenv('member2')
 password_member2 = os.getenv('password_member2')
 
-# لازم يتحول int
 count_loop = int(os.getenv('loop', 1))
 #=============================
 def countdown(seconds, loop=""):
@@ -26,6 +26,14 @@ def countdown(seconds, loop=""):
     sys.stdout.write("\r" + " " * 50 + "\r")
     sys.stdout.flush()
 
+# wrapper عشان لو في limit نرجّع restart
+def handle_limit(response):
+    if 'limit' in response.text:
+        w = int(response.headers.get('ratelimit-reset', 60))
+        countdown(w, 'limit')
+        return "restart"
+    return None
+#===============================#
 def login(number, password):
     headers = {
         'Accept': 'application/json, text/plain, */*',
@@ -71,304 +79,229 @@ def login(number, password):
         return None
 #===============================#
 def QuotaRedistribution(access_token, owner, member, quota):
-	url = "https://mobile.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
-	headers = {
-	    "Host": "mobile.vodafone.com.eg",
-	    "User-Agent": "okhttp/4.11.0",
-	    "Accept-Encoding": "gzip",
-	    "Accept": "application/json",
-	    "Connection": "Keep-Alive",
-	    "Content-Type": "application/json; charset=UTF-8",
-	    "Authorization": "Bearer "+access_token,
-	    "api-version": "v2",
-	    "x-agent-operatingsystem": "15",
-	    "clientId": "AnaVodafoneAndroid",
-	    "x-agent-device": "HONOR ELI-NX9",
-	    "x-agent-version": "2024.12.1",
-	    "x-agent-build": "946",
-	    "msisdn": owner,
-	    "Accept-Language": "ar"
-	}
-	data = {
-		  "category": [
-		    {
-		      "listHierarchyId": "TemplateID",
-		      "value": "47"
-		    }
-		  ],
-		  "createdBy": {
-		    "value": "MobileApp"
-		  },
-		  "parts": {
-		    "characteristicsValue": {
-		      "characteristicsValue": [
-		        {
-		          "characteristicName": "quotaDist1",
-		          "type": "percentage",
-		          "value": quota
-		        }
-		      ]
-		    },
-		    "member": [
-		      {
-		        "id": [
-		          {
-		            "schemeName": "MSISDN",
-		            "value": owner
-		          }
-		        ],
-		        "type": "Owner"
-		      },
-		      {
-		        "id": [
-		          {
-		            "schemeName": "MSISDN",
-		            "value": member
-		          }
-		        ],
-		        "type": "Member"
-		      }
-		    ]
-		  },
-		  "type": "QuotaRedistribution"
-	}
-	response = requests.patch(url, headers=headers, json=data)
-	if  'limit' in response.text:
-		w = response.headers['ratelimit-reset']
-		countdown(int(w), 'limit')
-	print(f'[+]quota [{member}]| {quota} => {response.text}')
-#===============================#
-def SendInvitation(access_token, owner, member, quota):
-	url = "https://web.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
-	headers = {
-	    "Host": "web.vodafone.com.eg",
-	    "User-Agent": "Mozilla/5.0 (iPhone 15; CPU iPhone OS 13_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/605.1.15",
-	    "Accept-Encoding": "gzip, deflate, br, zstd",
-	    "Accept": "application/json",
-	    "Connection": "keep-alive",
-	    "Content-Type": "application/json",
-	    "sec-ch-ua-platform": "Android",
-	    "Authorization": "Bearer "+access_token,
-	    "Accept-Language": "AR",
-	    "msisdn": owner,
-	    "clientId": "WebsiteConsumer",
-	    "Origin": "https://web.vodafone.com.eg",
-	    "X-Requested-With": "mark.via.gp"
-	}
-	data = {
-		  "name": "FlexFamily",
-		  "type": "SendInvitation",
-		  "category": [
-		    {
-		      "value": 523,
-		      "listHierarchyId": "PackageID"
-		    },
-		    {
-		      "value": "47",
-		      "listHierarchyId": "TemplateID"
-		    },
-		    {
-		      "value": 523,
-		      "listHierarchyId": "TierID"
-		    }
-		  ],
-		  "parts": {
-		    "member": [
-		      {
-		        "id": [
-		          {
-		            "value": owner,
-		            "schemeName": "MSISDN"
-		          }
-		        ],
-		        "type": "Owner"
-		      },
-		      {
-		        "id": [
-		          {
-		            "value": member,
-		            "schemeName": "MSISDN"
-		          }
-		        ],
-		        "type": "Member"
-		      }
-		    ],
-		    "characteristicsValue": {
-		      "characteristicsValue": [
-		        {
-		          "characteristicName": "quotaDist1",
-		          "value": quota,
-		          "type": "percentage"
-		        }
-		      ]
-		    }
-		  }
-	}
-	response = requests.post(url, headers=headers, json=data)
-	if 'limit' in response.text:
-		w = response.headers['ratelimit-reset']
-		countdown(int(w), 'limit')
-	print(f"[+]send [{member}] {quota} | {response.text}")
-#===============================#
-def AcceptInvitation(access_token, owner, member):
-	url = "https://mobile.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
-	headers = {
-	    "Host": "mobile.vodafone.com.eg",
-	    "User-Agent": "Mozilla/5.0 (iPhone 14; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/605.1.15",
-	    "Accept-Encoding": "gzip",
-	    "Accept": "application/json",
-	    "Connection": "Keep-Alive",
-	    "Content-Type": "application/json; charset=UTF-8",
-	    "Authorization": "Bearer "+access_token,
-	    "api-version": "v2",
-	    "x-agent-operatingsystem": "15",
-	    "clientId": "AnaVodafoneAndroid",
-	    "x-agent-device": "HONOR ELI-NX9",
-	    "x-agent-version": "2024.12.1",
-	    "x-agent-build": "946",
-	    "msisdn": member,
-	    "Accept-Language": "ar"
-	}
-	payload = {
-	    "name": "FlexFamily",
-	    "type": "AcceptInvitation",
-	    "category": [
-	        {"value": "47", "listHierarchyId": "TemplateID"}
-	    ],
-	    "parts": {
-	        "member": [
-	            {
-	                "id": [{"value": owner, "schemeName": "MSISDN"}],
-	                "type": "Owner"
-	            },
-	            {
-	                "id": [{"value": member, "schemeName": "MSISDN"}],
-	                "type": "Member"
-	            }
-	        ]
-	    }
-	}
-	response = requests.patch(url, headers=headers, json=payload)
-	if  'limit' in response.text:
-		w = response.headers['ratelimit-reset']
-		countdown(int(w), 'limit')
-	print(f"[+]Accept [{member}] | {response.text}")
-#===============================#
-def CancelInvitation(access_token, owner, member):
-	url = "https://web.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
-	headers = {
-	    "Host": "web.vodafone.com.eg",
-	    "User-Agent": "Mozilla/5.0 (iPhone 12; CPU iPhone OS 13_3 like Mac OS X) AppleWebKit/604.1 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/604.1",
-	    "Accept-Encoding": "gzip",
-	    "Accept": "application/json",
-	    "Connection": "Keep-Alive",
-	    "Content-Type": "application/json; charset=UTF-8",
-	    "Authorization": "Bearer "+access_token,
-	    "api-version": "v2",
-	    "x-agent-operatingsystem": "15",
-	    "clientId": "AnaVodafoneAndroid",
-	    "x-agent-device": "iPhone 14 Pro Max",
-	    "x-agent-version": "2024.11.2",
-	    "x-agent-build": "944",
-	    "msisdn": owner,
-	    "Accept-Language": "ar"
-	}
-	payload = {
-    "category": [
-        {"listHierarchyId": "PackageID", "value": 523},
-        {"listHierarchyId": "TemplateID", "value": "47"},
-        {"listHierarchyId": "TierID", "value": 523}
-    ],
-    "parts": {
-        "characteristicsValue": {
-            "characteristicsValue": [
-                {"characteristicName": "quotaDist1", "type": "percentage", "value": "40"}
+    url = "https://mobile.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
+    headers = {
+        "Host": "mobile.vodafone.com.eg",
+        "User-Agent": "okhttp/4.11.0",
+        "Accept-Encoding": "gzip",
+        "Accept": "application/json",
+        "Connection": "Keep-Alive",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Authorization": "Bearer "+access_token,
+        "api-version": "v2",
+        "x-agent-operatingsystem": "15",
+        "clientId": "AnaVodafoneAndroid",
+        "x-agent-device": "HONOR ELI-NX9",
+        "x-agent-version": "2024.12.1",
+        "x-agent-build": "946",
+        "msisdn": owner,
+        "Accept-Language": "ar"
+    }
+    data = {
+        "category": [{"listHierarchyId": "TemplateID", "value": "47"}],
+        "createdBy": {"value": "MobileApp"},
+        "parts": {
+            "characteristicsValue": {
+                "characteristicsValue": [
+                    {"characteristicName": "quotaDist1","type": "percentage","value": quota}
+                ]
+            },
+            "member": [
+                {"id": [{"schemeName": "MSISDN","value": owner}], "type": "Owner"},
+                {"id": [{"schemeName": "MSISDN","value": member}], "type": "Member"}
             ]
         },
-        "member": [
-            {
-                "id": [{"schemeName": "MSISDN", "value": owner}],
-                "type": "Owner"
-            },
-            {
-                "id": [{"schemeName": "MSISDN", "value": member}],
-                "type": "Member"
+        "type": "QuotaRedistribution"
+    }
+    response = requests.patch(url, headers=headers, json=data)
+    if handle_limit(response) == "restart": return "restart"
+    print(f'[+]quota [{member}]| {quota} => {response.text}')
+#===============================#
+def SendInvitation(access_token, owner, member, quota):
+    url = "https://web.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
+    headers = {
+        "Host": "web.vodafone.com.eg",
+        "User-Agent": "Mozilla/5.0 (iPhone 15; CPU iPhone OS 13_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/605.1.15",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept": "application/json",
+        "Connection": "keep-alive",
+        "Content-Type": "application/json",
+        "sec-ch-ua-platform": "Android",
+        "Authorization": "Bearer "+access_token,
+        "Accept-Language": "AR",
+        "msisdn": owner,
+        "clientId": "WebsiteConsumer",
+        "Origin": "https://web.vodafone.com.eg",
+        "X-Requested-With": "mark.via.gp"
+    }
+    data = {
+        "name": "FlexFamily",
+        "type": "SendInvitation",
+        "category": [
+            {"value": 523,"listHierarchyId": "PackageID"},
+            {"value": "47","listHierarchyId": "TemplateID"},
+            {"value": 523,"listHierarchyId": "TierID"}
+        ],
+        "parts": {
+            "member": [
+                {"id": [{"value": owner,"schemeName": "MSISDN"}],"type": "Owner"},
+                {"id": [{"value": member,"schemeName": "MSISDN"}],"type": "Member"}
+            ],
+            "characteristicsValue": {
+                "characteristicsValue": [
+                    {"characteristicName": "quotaDist1","value": quota,"type": "percentage"}
+                ]
             }
-        ]
-    },
-    "type": "CancelInvitation"
-}
-
-	response = requests.post(url, headers=headers, json=payload)
-	if  'limit' in response.text:
-		w = response.headers['ratelimit-reset']
-		countdown(int(w), 'limit')
-	print(f"[+]Remove [{member}] | {response.text}")
+        }
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if handle_limit(response) == "restart": return "restart"
+    print(f"[+]send [{member}] {quota} | {response.text}")
+#===============================#
+def AcceptInvitation(access_token, owner, member):
+    url = "https://mobile.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
+    headers = {
+        "Host": "mobile.vodafone.com.eg",
+        "User-Agent": "Mozilla/5.0 (iPhone 14; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/605.1.15",
+        "Accept-Encoding": "gzip",
+        "Accept": "application/json",
+        "Connection": "Keep-Alive",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Authorization": "Bearer "+access_token,
+        "api-version": "v2",
+        "x-agent-operatingsystem": "15",
+        "clientId": "AnaVodafoneAndroid",
+        "x-agent-device": "HONOR ELI-NX9",
+        "x-agent-version": "2024.12.1",
+        "x-agent-build": "946",
+        "msisdn": member,
+        "Accept-Language": "ar"
+    }
+    payload = {
+        "name": "FlexFamily",
+        "type": "AcceptInvitation",
+        "category": [{"value": "47", "listHierarchyId": "TemplateID"}],
+        "parts": {
+            "member": [
+                {"id": [{"value": owner, "schemeName": "MSISDN"}], "type": "Owner"},
+                {"id": [{"value": member, "schemeName": "MSISDN"}], "type": "Member"}
+            ]
+        }
+    }
+    response = requests.patch(url, headers=headers, json=payload)
+    if handle_limit(response) == "restart": return "restart"
+    print(f"[+]Accept [{member}] | {response.text}")
+#===============================#
+def CancelInvitation(access_token, owner, member):
+    url = "https://web.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
+    headers = {
+        "Host": "web.vodafone.com.eg",
+        "User-Agent": "Mozilla/5.0 (iPhone 12; CPU iPhone OS 13_3 like Mac OS X) AppleWebKit/604.1 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/604.1",
+        "Accept-Encoding": "gzip",
+        "Accept": "application/json",
+        "Connection": "Keep-Alive",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Authorization": "Bearer "+access_token,
+        "api-version": "v2",
+        "x-agent-operatingsystem": "15",
+        "clientId": "AnaVodafoneAndroid",
+        "x-agent-device": "iPhone 14 Pro Max",
+        "x-agent-version": "2024.11.2",
+        "x-agent-build": "944",
+        "msisdn": owner,
+        "Accept-Language": "ar"
+    }
+    payload = {
+        "category": [
+            {"listHierarchyId": "PackageID", "value": 523},
+            {"listHierarchyId": "TemplateID", "value": "47"},
+            {"listHierarchyId": "TierID", "value": 523}
+        ],
+        "parts": {
+            "characteristicsValue": {
+                "characteristicsValue": [
+                    {"characteristicName": "quotaDist1", "type": "percentage", "value": "40"}
+                ]
+            },
+            "member": [
+                {"id": [{"schemeName": "MSISDN", "value": owner}], "type": "Owner"},
+                {"id": [{"schemeName": "MSISDN", "value": member}], "type": "Member"}
+            ]
+        },
+        "type": "CancelInvitation"
+    }
+    response = requests.post(url, headers=headers, json=payload)
+    if handle_limit(response) == "restart": return "restart"
+    print(f"[+]Remove [{member}] | {response.text}")
 #===============================#
 def total_felix(access_token, owner):
-	url = f"https://web.vodafone.com.eg/services/dxl/usage/usageConsumptionReport?bucket.product.publicIdentifier={owner}&@type=aggregated"
-	headers = {
-	    "User-Agent": "okhttp/4.11.0",
-	    "Accept-Encoding": "gzip",
-	    "Accept": "application/json",
-	    "Connection": "Keep-Alive",
-	    "channel": "MOBILE",
-	    "useCase": "Promo",
-	    "Authorization": "Bearer "+access_token,
-	    "api-version": "v2",
-	    "x-agent-operatingsystem": "11",
-	    "clientId": "AnaVodafoneAndroid",
-	    "x-agent-device": "OPPO CPH2059",
-	    "x-agent-version": "2024.3.3",
-	    "x-agent-build": "593",
-	    "msisdn": owner,
-	    "Content-Type": "application/json",
-	    "Accept-Language": "ar",
-	    "Host": "web.vodafone.com.eg"
-	}
-	response = requests.get(url, headers=headers).json()
-	value = None
-	for item in response:
-	       if item.get("@type") == "OTHERS":
-	           for bucket in item.get("bucket", []):
-	               if bucket.get("usageType") == "limit":
-	               	value = bucket["bucketBalance"][0]["remainingValue"]["amount"]
-	               	break
-	print(f"Flexat => {value}")
+    url = f"https://web.vodafone.com.eg/services/dxl/usage/usageConsumptionReport?bucket.product.publicIdentifier={owner}&@type=aggregated"
+    headers = {
+        "User-Agent": "okhttp/4.11.0",
+        "Accept-Encoding": "gzip",
+        "Accept": "application/json",
+        "Connection": "Keep-Alive",
+        "channel": "MOBILE",
+        "useCase": "Promo",
+        "Authorization": "Bearer "+access_token,
+        "api-version": "v2",
+        "x-agent-operatingsystem": "11",
+        "clientId": "AnaVodafoneAndroid",
+        "x-agent-device": "OPPO CPH2059",
+        "x-agent-version": "2024.3.3",
+        "x-agent-build": "593",
+        "msisdn": owner,
+        "Content-Type": "application/json",
+        "Accept-Language": "ar",
+        "Host": "web.vodafone.com.eg"
+    }
+    response = requests.get(url, headers=headers).json()
+    value = None
+    for item in response:
+        if item.get("@type") == "OTHERS":
+            for bucket in item.get("bucket", []):
+                if bucket.get("usageType") == "limit":
+                    value = bucket["bucketBalance"][0]["remainingValue"]["amount"]
+                    break
+    print(f"Flexat => {value}")
 #===============================#
-access_owner = login(owner, password_owner)
-access_member = login(member2, password_member2)
 
-for x in range(count_loop):
-    if x % 2 == 0 and x != 0:
-        access_owner = login(owner, password_owner)
-        access_member = login(member2, password_member2)
-    # end block
+def main():
+    access_owner = login(owner, password_owner)
+    access_member = login(member2, password_member2)
 
-    QuotaRedistribution(access_owner, owner, member1, '10')
-    countdown(5*60)
-    SendInvitation(access_owner, owner, member2, '40')
-    time.sleep(15)
-    barrier = threading.Barrier(2)
+    for x in range(count_loop):
+        if x % 2 == 0 and x != 0:
+            access_owner = login(owner, password_owner)
+            access_member = login(member2, password_member2)
 
-    def fun1():
-        barrier.wait()
-        AcceptInvitation(access_member, owner, member2)
+        if QuotaRedistribution(access_owner, owner, member1, '10') == "restart": return "restart"
+        countdown(5*60)
+        if SendInvitation(access_owner, owner, member2, '40') == "restart": return "restart"
 
-    def fun2():
-        barrier.wait()
-        QuotaRedistribution(access_owner, owner, member1, '40')
+        time.sleep(15)
+        barrier = threading.Barrier(2)
 
-    t1 = threading.Thread(target=fun1)
-    t2 = threading.Thread(target=fun2)
+        def fun1():
+            barrier.wait()
+            AcceptInvitation(access_member, owner, member2)
 
-    t1.start()
-    t2.start()
+        def fun2():
+            barrier.wait()
+            QuotaRedistribution(access_owner, owner, member1, '40')
 
-    t1.join()
-    t2.join()
+        t1 = threading.Thread(target=fun1)
+        t2 = threading.Thread(target=fun2)
+        t1.start(); t2.start()
+        t1.join(); t2.join()
 
-    time.sleep(15)
-    CancelInvitation(access_owner, owner, member2)
-    total_felix(access_owner, owner)
-    countdown(5*60, loop=f'loop {x + 1} from {count_loop}')
+        time.sleep(15)
+        if CancelInvitation(access_owner, owner, member2) == "restart": return "restart"
+        total_felix(access_owner, owner)
+        countdown(5*60, loop=f'loop {x + 1} from {count_loop}')
+
+# loop يعيد تشغيل main() كل مرة يحصل فيها limit
+while True:
+    result = main()
+    if result != "restart":
+        break
