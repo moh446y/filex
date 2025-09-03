@@ -116,6 +116,9 @@ def QuotaRedistribution(access_token, owner, member, quota):
     response = requests.patch(url, headers=headers, json=data)
     if handle_limit(response) == "restart": return "restart"
     print(f'[+]quota [{member}]| {quota} => {response.text}')
+    value = response.headers.get("x-ratelimit-remaining-day")
+    if value:
+    	print('how often =>', value)
 #===============================#
 def SendInvitation(access_token, owner, member, quota):
     url = "https://web.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
@@ -157,6 +160,9 @@ def SendInvitation(access_token, owner, member, quota):
     response = requests.post(url, headers=headers, json=data)
     if handle_limit(response) == "restart": return "restart"
     print(f"[+]send [{member}] {quota} | {response.text}")
+    value = response.headers.get("x-ratelimit-remaining-day")
+    if value:
+    	print('how often =>', value)
 #===============================#
 def AcceptInvitation(access_token, owner, member):
     url = "https://mobile.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
@@ -191,6 +197,9 @@ def AcceptInvitation(access_token, owner, member):
     response = requests.patch(url, headers=headers, json=payload)
     if handle_limit(response) == "restart": return "restart"
     print(f"[+]Accept [{member}] | {response.text}")
+    value = response.headers.get("x-ratelimit-remaining-day")
+    if value:
+    	print('[+]how often =>', value)
 #===============================#
 def CancelInvitation(access_token, owner, member):
     url = "https://web.vodafone.com.eg/services/dxl/cg/customerGroupAPI/customerGroup"
@@ -233,6 +242,8 @@ def CancelInvitation(access_token, owner, member):
     response = requests.post(url, headers=headers, json=payload)
     if handle_limit(response) == "restart": return "restart"
     print(f"[+]Remove [{member}] | {response.text}")
+    
+    	
 #===============================#
 def total_felix(access_token, owner):
     url = f"https://web.vodafone.com.eg/services/dxl/usage/usageConsumptionReport?bucket.product.publicIdentifier={owner}&@type=aggregated"
